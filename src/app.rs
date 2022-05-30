@@ -1,22 +1,34 @@
-use std::f32::consts::PI;
+use std::f64::consts::{PI, TAU};
 
 use eframe::App;
 use egui::{
-    plot::{Line, Plot, Value, Values},
-    DragValue, Vec2,
+    plot::{Line, Plot, Value, Values, Points, Legend, LineStyle, MarkerShape},
+    DragValue, remap, Color32,
 };
 
 #[derive(Default)]
 struct Input {
-    x: f32,
-    z: f32,
-    angle: f32,
+    x: f64,
+    z: f64,
+    angle: f64,
 }
 
 #[derive(Default)]
 pub struct Stronghold {
     start: Input,
     end: Input,
+}
+
+fn circle(r: f64) -> Line {
+        let n = 512;
+        let circle = (0..=n).map(|i| {
+            let t = remap(i as f64, 0.0..=(n as f64), 0.0..=TAU);
+            Value::new(
+                r * t.cos(),
+                r * t.sin(),
+            )
+        });
+        Line::new(Values::from_values_iter(circle)).width(3.0).style(LineStyle::Dashed { length: 20.0 })
 }
 
 impl Stronghold {
@@ -81,11 +93,11 @@ impl App for Stronghold {
             let z = m1 * x + i1;
 
             ui.horizontal(|ui| {
-                ui.label(&format!("Result: {x}, {z}"));
+                ui.label(&format!("Result: {x:.1}, {z:.1}"));
             });
 
             // Show lines
-            let length = 3000.0;
+            let length = 2800.0;
 
             // Start
             let start_line = Line::new(Values::from_values(vec![
@@ -104,9 +116,14 @@ impl App for Stronghold {
                     end.x + (end.angle / 180.0 * PI).cos() * length,
                     end.z + (end.angle / 180.0 * PI).sin() * length,
                 ),
-            ]))
-            .width(3.0);
+            ])).width(3.0);
 
+            // Markers
+            let points = Points::new(Values::from_values(vec![
+                Value::new(start.x, start.z),
+                Value::new(end.x, end.z),
+            ])).shape(MarkerShape::Circle).radius(5.0).color(Color32::BLACK);
+            
             Plot::new("Stronghold")
                 .center_x_axis(true)
                 .center_y_axis(true)
@@ -116,6 +133,9 @@ impl App for Stronghold {
                 .show(ui, |plot| {
                     plot.line(start_line);
                     plot.line(end_line);
+                    plot.line(circle(1280.0));
+                    plot.line(circle(2800.0));
+                    plot.points(points)
                 });
         });
     }
